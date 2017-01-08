@@ -1,0 +1,4 @@
+name: Shazam
+version: 0.1.0
+main: com.github.shazam.ShazamPlugin
+depend: [AbilityAPI]
