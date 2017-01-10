@@ -46,11 +46,13 @@ public class FrostburnSecondary extends Ability {
 
     private final AbilityManager manager;
     private final Location location;
-    private final Vector vector;
+    private Vector vector;
 
     private FallingBlock fallingBlock;
     private int ticks;
     private double degrees = Math.random() * 360; // particle rotation
+
+    private boolean ignorePlayer = true;
 
     public FrostburnSecondary(AbilityManager manager, AbilityProvider provider, User user) {
         super(provider, user);
@@ -83,7 +85,9 @@ public class FrostburnSecondary extends Ability {
         if (optional.isPresent()) {
             final LivingEntity target = (LivingEntity) optional.get();
             if (target instanceof Player && target.getName().equals("Bluesocks")) {
-                fallingBlock.setVelocity(fallingBlock.getVelocity().multiply(-1));
+                vector = fallingBlock.getVelocity().multiply(-1);
+                fallingBlock.setVelocity(vector);
+                ignorePlayer = false;
                 return;
             }
             target.damage(entityCollideDamage);
@@ -166,7 +170,7 @@ public class FrostburnSecondary extends Ability {
     private Optional<Entity> getCollisionWithEntity(FallingBlock block) {
         return block.getNearbyEntities(3, 3, 3).stream()
                 .filter(entity -> entity instanceof LivingEntity)
-                .filter(entity -> !entity.equals(getPlayer()))
+                .filter(entity -> !ignorePlayer || !entity.equals(getPlayer()))
                 .filter(entity -> getBoundingBox(entity).inRadius(block.getLocation().toVector(), 0.5))
                 .findFirst();
     }
