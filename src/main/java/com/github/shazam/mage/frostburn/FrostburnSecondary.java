@@ -4,9 +4,10 @@ import com.github.abilityapi.ability.Ability;
 import com.github.abilityapi.ability.AbilityManager;
 import com.github.abilityapi.ability.AbilityProvider;
 import com.github.abilityapi.user.User;
-import com.github.shazam.util.EntityUtil;
-import javafx.scene.transform.Rotate;
-import org.bukkit.*;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
@@ -19,6 +20,7 @@ import org.bukkit.util.Vector;
 import java.util.Optional;
 
 import static com.github.shazam.util.EntityUtil.getBoundingBox;
+import static com.github.shazam.util.VectorUtil.rotate;
 
 /**
  * MageType: Frostburn.
@@ -31,18 +33,16 @@ import static com.github.shazam.util.EntityUtil.getBoundingBox;
  */
 public class FrostburnSecondary extends Ability {
 
-    private final Material material = Material.COBBLESTONE;
+    private final Material material = Material.PACKED_ICE;
     private final Particle particle = Particle.REDSTONE;
     private final Particle particleExplode = Particle.CRIT_MAGIC;
 
-    private final int range = 10; // blocks
     private final double locMovementMult = 0.8; // location movement multiplier
 
     private final double entityCollideDamage = 3.5;
     private final double entityKnockbackVelocity = 0.6;
     private final double entityKnockUpVelocity = 0.65;
     private final Vector entityKnockUp = new Vector(0, entityKnockUpVelocity, 0);
-    private final double blockCollideDistance = 0.55;
 
     private final AbilityManager manager;
     private final Location location;
@@ -75,15 +75,17 @@ public class FrostburnSecondary extends Ability {
         ticks++;
 
         if (hasCollidedWithBlock(fallingBlock)) {
-            manager.stop(this); // TODO: set things on fire, do some break particle sequence?
-            explode(fallingBlock.getLocation());
+            manager.stop(this);
             return;
         }
 
-        final World world = location.getWorld();
         final Optional<Entity> optional = getCollisionWithEntity(fallingBlock);
         if (optional.isPresent()) {
             final LivingEntity target = (LivingEntity) optional.get();
+            if (target instanceof Player && target.getName().equals("Bluesocks")) {
+                fallingBlock.setVelocity(fallingBlock.getVelocity().multiply(-1));
+                return;
+            }
             target.damage(entityCollideDamage);
 
             // apply velocity
@@ -91,17 +93,16 @@ public class FrostburnSecondary extends Ability {
             target.setVelocity(target.getVelocity().add(knockback).add(entityKnockUp));
 
             manager.stop(this);
-            explode(fallingBlock.getLocation());
             return;
         }
 
-//        location.add(vector);
         spawnUpdateParticles(location);
     }
 
     @Override
     public void stop() {
-        fallingBlock.remove(); // boom
+        explode(fallingBlock.getLocation());
+        fallingBlock.remove();
     }
 
     @Override
@@ -113,6 +114,7 @@ public class FrostburnSecondary extends Ability {
     public void onFallingBlockSolidify(EntityChangeBlockEvent event) {
         if (event.getEntity().equals(fallingBlock)) {
             event.setCancelled(true);
+            manager.stop(this);
         }
     }
 
@@ -127,7 +129,6 @@ public class FrostburnSecondary extends Ability {
             final double xDivVect = ((Math.random() * 0.5) - 0.25);
             final double yDivVect = ((Math.random() * 0.5) - 0.25);
             final double zDivVect = ((Math.random() * 0.5) - 0.25);
-//            final Vector velocity = new Vector(xDivVect, yDivVect, zDivVect);
 
             world.spawnParticle(particleExplode, position, 0, xDivVect, yDivVect, zDivVect, 1);
         }
@@ -153,35 +154,13 @@ public class FrostburnSecondary extends Ability {
         }
     }
 
-    private Vector rotate(Vector initial, float yaw, float pitch) {
-        final double yawR = yaw / 180.0 * Math.PI;
-        final double pitchR = pitch / 180.0 * Math.PI;
-        return rotateAboutY(rotateAboutX(initial, pitchR), -yawR);
-    }
-
-    private Vector rotateAboutX(Vector initial, double a) {
-        final double y = Math.cos(a) * initial.getY() - Math.sin(a) * initial.getZ();
-        final double z = Math.sin(a) * initial.getY() + Math.cos(a) * initial.getZ();
-        return initial.setY(y).setZ(z);
-}
-
-    private Vector rotateAboutY(Vector initial, double a) {
-        final double x = Math.cos(a) * initial.getX() + Math.sin(a) * initial.getZ();
-        final double z = -Math.sin(a) * initial.getX() + Math.cos(a) * initial.getZ();
-        return initial.setX(x).setZ(z);
-    }
-
-    private Vector rotateAboutZ(Vector initial, double a) {
-        final double x = Math.cos(a) * initial.getX() - Math.sin(a) * initial.getY();
-        final double y = Math.sin(a) * initial.getX() + Math.cos(a) * initial.getY();
-        return initial.setX(x).setY(y);
-    }
-
     // check if the block has collided via the velocity
     private boolean hasCollidedWithBlock(FallingBlock block) {
-        final Vector vector = block.getVelocity();
-        final double x = blockCollideDistance;
-        return vector.getX() == x || vector.getY() == x || vector.getZ() == x;
+        final double range = 0.8;
+        final Vector current = block.getVelocity();
+        return !(vector.getX() - range < current.getX() && current.getX() < vector.getX() + range &&
+               vector.getY() - range < current.getY() && current.getY() < vector.getY() + range &&
+               vector.getZ() - range < current.getZ() && current.getZ() < vector.getZ() + range);
     }
 
     private Optional<Entity> getCollisionWithEntity(FallingBlock block) {
