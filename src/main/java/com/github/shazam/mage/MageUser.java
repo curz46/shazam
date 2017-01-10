@@ -11,4 +11,8 @@ public class MageUser extends BaseUser {
         super(player);
     }
 
+    public MageType getMageType() {
+        return mageType;
+    }
+
 }
