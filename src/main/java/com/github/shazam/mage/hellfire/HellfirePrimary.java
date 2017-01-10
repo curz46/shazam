@@ -92,16 +92,18 @@ public class HellfirePrimary extends Ability {
             final Location location = fire.getLocation();
 
             if (fire.isOnGround() && fire.getVelocity().getBlockX() < .5) {
-                world.spawnParticle(Particle.LAVA, location, 0, .5f, 0, .5f);
                 Material blockMaterial = fire.getLocation().getBlock().getType();
-                if (!blockMaterial.equals(Material.FIRE) && !blockMaterial.equals(Material.WATER) && !blockMaterial.equals(Material.LAVA) && !blockMaterial.equals(Material.STATIONARY_WATER) && !blockMaterial.equals(Material.STATIONARY_LAVA)) {
-                    hellfireBlocks.put(fire.getLocation(), fire.getLocation().getBlock());
-                    fire.getLocation().getBlock().setType(Material.FIRE);
+                if (!blockMaterial.equals(Material.WATER) && !blockMaterial.equals(Material.LAVA) && !blockMaterial.equals(Material.STATIONARY_WATER) && !blockMaterial.equals(Material.STATIONARY_LAVA) && !blockMaterial.equals(Material.PORTAL)) {
+                    world.spawnParticle(Particle.LAVA, location, 0, .5f, 0, .5f);
+                    if (!blockMaterial.equals(Material.FIRE)) {
+                        hellfireBlocks.put(fire.getLocation(), fire.getLocation().getBlock());
+                        fire.getLocation().getBlock().setType(Material.FIRE);
+                    }
                 }
             } else {
                 world.spawnParticle(Particle.FLAME, location.add(0, 0.45f, 0), 0, 0f, 0f, 0f);
+                world.spawnParticle(Particle.SMOKE_NORMAL, location.add(0, 0.5f, 0), 1, .2f, .1f, .2f, 0.1);
             }
-            world.spawnParticle(Particle.SMOKE_NORMAL, location.add(0, 0.5f, 0), 1, .2f, .1f, .2f, 0.1);
         }
     }
 
@@ -112,7 +114,7 @@ public class HellfirePrimary extends Ability {
     }
 
     public void removeFire() {
-        if (hellfire.get(0) != null) {
+        if (!hellfire.isEmpty() && hellfire.get(0) != null) {
             final World world = hellfire.get(0).getWorld();
             final Location soundLocation = hellfire.get(0).getLocation();
 
@@ -121,10 +123,12 @@ public class HellfirePrimary extends Ability {
             }
 
             for (Location location : hellfireBlocks.keySet()) {
-                location.getBlock().setType(Material.AIR);
+                if(location.getBlock().getType().equals(Material.FIRE)) {
+                    location.getBlock().setType(Material.AIR);
 
-                location.getBlock().setType(hellfireBlocks.get(location).getType());
-                location.getBlock().setData(hellfireBlocks.get(location).getData());
+                    location.getBlock().setType(hellfireBlocks.get(location).getType());
+                    location.getBlock().setData(hellfireBlocks.get(location).getData());
+                }
             }
             hellfireBlocks.clear();
 

@@ -13,7 +13,9 @@ public class HellfirePrimaryProvider implements AbilityProvider {
     @Override
     public SequenceBlueprint getSequence() {
         return new SequenceBuilder()
+                .action(Actions.INTERACT)
                 .action(Actions.START_SNEAK)
+                    .expire(20 * 2)
                     //.condition((player, event) -> User.get(player).getInstance(MageUser.class).getMageType().equals(MageType.HELLFIRE))
                 .build(this);
     }
